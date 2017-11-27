@@ -29,7 +29,9 @@ var rect = function rect(node) {
   var box = node.getBoundingClientRect();
   return {
     width: (box.width ? box.width : node.offsetWidth) || 0,
-    height: (box.height ? box.height : node.offsetHeight) || 0
+    height: (box.height ? box.height : node.offsetHeight) || 0,
+    top: box.top || 0,
+    left: box.left || 0
   };
 };
 var offset = function offset(node) {
@@ -48,8 +50,8 @@ var offset = function offset(node) {
   var clientLeft = doc.documentElement.clientLeft || doc.body.clientLeft;
 
   box = {
-    top: box.top + (scrollTop || 0) - (clientTop || 0),
-    left: box.left + (scrollLeft || 0) - (clientLeft || 0),
+    top: nRect.top + (scrollTop || 0) - (clientTop || 0),
+    left: nRect.left + (scrollLeft || 0) - (clientLeft || 0),
     width: nRect.width,
     height: nRect.height
   };
@@ -144,6 +146,7 @@ if (!isServer) {
 var autoFloat = {
   inserted: function inserted(el, binding, vnode) {
     if (!isServer) {
+      console.log(offset(el));
       floatItemArray.push({ el: el, rect: offset(el), originCssText: el.style.cssText });
       vnode.context.$on('v-auto-float-height-change', function () {
         var floatItem = floatItemArray.find(function (item) {

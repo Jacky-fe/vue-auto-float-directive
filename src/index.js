@@ -24,7 +24,9 @@ const rect = function (node) {
   const box = node.getBoundingClientRect()
   return {
     width: (box.width ? box.width : node.offsetWidth) || 0,
-    height: (box.height ? box.height : node.offsetHeight) || 0
+    height: (box.height ? box.height : node.offsetHeight) || 0,
+    top: box.top || 0,
+    left: box.left || 0
   }
 }
 const offset = function (node) {
@@ -43,8 +45,8 @@ const offset = function (node) {
   let clientLeft = doc.documentElement.clientLeft || doc.body.clientLeft
 
   box = {
-    top: box.top + (scrollTop || 0) - (clientTop || 0),
-    left: box.left + (scrollLeft || 0) - (clientLeft || 0),
+    top: nRect.top + (scrollTop || 0) - (clientTop || 0),
+    left: nRect.left + (scrollLeft || 0) - (clientLeft || 0),
     width: nRect.width,
     height: nRect.height
   }
@@ -140,6 +142,7 @@ if (!isServer) {
 const autoFloat = {
   inserted (el, binding, vnode) {
     if (!isServer) {
+      console.log(offset(el))
       floatItemArray.push({el, rect: offset(el), originCssText: el.style.cssText})
       vnode.context.$on('v-auto-float-height-change', () => {
         const floatItem = floatItemArray.find(item => item.el === el)
