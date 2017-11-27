@@ -89,16 +89,23 @@ if (!isServer) {
       }
     });
   });
+  var timerId = null;
   // when resize recompute the width of placeHolder and height of origin
   on(window, 'resize', function () {
-    floatItemArray.forEach(function (item) {
-      if (item.hasFixed) {
-        var placeHolderRect = offset(item.placeHolder);
-        item.el.style.cssText = 'position:fixed; top:0px; width:' + placeHolderRect.width + 'px;z-index: 100';
-        var orginRect = offset(item.el);
-        item.placeHolder.style.cssText = 'height:' + orginRect.height + 'px;';
-      }
-    });
+    if (timerId) {
+      return;
+    }
+    timerId = window.setTimeout(function () {
+      floatItemArray.forEach(function (item) {
+        if (item.hasFixed) {
+          var placeHolderRect = offset(item.placeHolder);
+          item.el.style.cssText = 'position:fixed; top:0px; width:' + placeHolderRect.width + 'px;z-index: 100';
+          var orginRect = offset(item.el);
+          item.placeHolder.style.cssText = 'height:' + orginRect.height + 'px;';
+        }
+      });
+      timerId = window.clearTimeout(timerId);
+    }, 100);
   });
 }
 var autoFloat = {
