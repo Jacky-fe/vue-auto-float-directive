@@ -25,6 +25,13 @@ var ownerDocument = function ownerDocument(node) {
 var ownerWindow = function ownerDocument(node) {
   return node === node.window ? node : node.nodeType === 9 ? node.defaultView || node.parentWindow : window;
 };
+var rect = function rect(node) {
+  var box = node.getBoundingClientRect();
+  return {
+    width: (box.width ? box.width : node.offsetWidth) || 0,
+    height: (box.height ? box.height : node.offsetHeight) || 0
+  };
+};
 var offset = function offset(node) {
   var doc = ownerDocument(node);
   var win = ownerWindow(doc);
@@ -34,8 +41,7 @@ var offset = function offset(node) {
   if (!doc || !docElem.contains(node) || !node || node.nodeType !== 1) {
     return box;
   }
-  box = node.getBoundingClientRect();
-
+  var nRect = rect(node);
   var scrollTop = win.pageYOffset || doc.documentElement.scrollTop || doc.body.scrollTop;
   var scrollLeft = win.pageXOffset || doc.documentElement.scrollLeft || doc.body.scrollLeft;
   var clientTop = doc.documentElement.clientTop || doc.body.clientTop;
@@ -44,8 +50,8 @@ var offset = function offset(node) {
   box = {
     top: box.top + (scrollTop || 0) - (clientTop || 0),
     left: box.left + (scrollLeft || 0) - (clientLeft || 0),
-    width: (box.width ? box.width : node.offsetWidth) || 0,
-    height: (box.height ? box.height : node.offsetHeight) || 0
+    width: nRect.width,
+    height: nRect.height
   };
 
   return box;
@@ -78,17 +84,44 @@ if (!isServer) {
         // recomputed the rect, maybe some elements changed
         item.rect = offset(item.el);
         item.hasFixed = true;
-        item.el.style.cssText = 'position:fixed; top:0px; width:' + item.rect.width + 'px;z-index: 100';
+        item.el.style.cssText = changeEleCssText(item.el, 'position:fixed; top:0px; width:' + item.rect.width + 'px;z-index: 100');
         // create a placeHolder to avoid the element jump up
         item.placeHolder = item.placeHolder || createPlaceHolder(item.rect.width, item.rect.height, item.el.className);
         item.el.parentElement.insertBefore(item.placeHolder, item.el.nextSibling);
       } else if (scrollTop < item.rect.top && item.hasFixed) {
         item.hasFixed = false;
-        item.el.style.cssText = '';
+        item.el.style.cssText = item.originCssText;
         item.el.parentElement.removeChild(item.placeHolder);
       }
     });
   });
+  var parseStyle = function parseStyle(cssText) {
+    if (cssText) {
+      var ret = {};
+      var styleArray = cssText.split(';');
+      styleArray.forEach(function (item) {
+        var nameValue = item.split(':');
+        ret[nameValue[0]] = nameValue[1];
+      });
+      return ret;
+    }
+    return {};
+  };
+  var toCssText = function toCssText(cssObj) {
+    var ret = [];
+    for (var key in cssObj) {
+      ret.push(key + ':' + cssObj[key]);
+    }
+    return ret.join(';');
+  };
+  var changeEleCssText = function changeEleCssText(el, cssText) {
+    var oldCssObj = parseStyle(el.style.cssText);
+    var newCssObj = parseStyle(cssText);
+    for (var key in newCssObj) {
+      oldCssObj[key] = newCssObj[key];
+    }
+    return toCssText(oldCssObj);
+  };
   var timerId = null;
   // when resize recompute the width of placeHolder and height of origin
   on(window, 'resize', function () {
@@ -98,10 +131,10 @@ if (!isServer) {
     timerId = window.setTimeout(function () {
       floatItemArray.forEach(function (item) {
         if (item.hasFixed) {
-          var placeHolderRect = offset(item.placeHolder);
-          item.el.style.cssText = 'position:fixed; top:0px; width:' + placeHolderRect.width + 'px;z-index: 100';
-          var orginRect = offset(item.el);
-          item.placeHolder.style.cssText = 'height:' + orginRect.height + 'px;';
+          var placeHolderRect = rect(item.placeHolder);
+          item.el.style.cssText = changeEleCssText(item.el, 'position:fixed; top:0px; width:' + placeHolderRect.width + 'px;z-index: 100');
+          var originRect = rect(item.el);
+          item.placeHolder.style.cssText = 'height:' + originRect.height + 'px;';
         }
       });
       timerId = window.clearTimeout(timerId);
@@ -109,17 +142,27 @@ if (!isServer) {
   });
 }
 var autoFloat = {
-  inserted: function inserted(el) {
+  inserted: function inserted(el, binding, vnode) {
     if (!isServer) {
-      floatItemArray.push({ el: el, rect: offset(el) });
+      floatItemArray.push({ el: el, rect: offset(el), originCssText: el.style.cssText });
+      vnode.context.$on('v-auto-float-height-change', function () {
+        var floatItem = floatItemArray.find(function (item) {
+          return item.el === el;
+        });
+        var height = rect(el).height;
+        if (height !== floatItem.height && floatItem.hasFixed && floatItem.placeHolder) {
+          floatItem.placeHolder.style.cssText = 'height:' + height + 'px';
+        }
+      });
     }
   },
-  unbind: function unbind(el) {
+  unbind: function unbind(el, binding, vnode) {
     if (!isServer) {
       var index = floatItemArray.findIndex(function (item) {
         return item.el === el;
       });
       floatItemArray.splice(index, 1);
+      vnode.context.$off('v-auto-float-height-change');
     }
   }
 };

@@ -27,16 +27,24 @@ Vue.use(AutoFloat)
 <div v-auto-float>
 </div>
 ```
+``` js
+  methods: {
+    noticeHeightChanged () {
+      // when emit this event, the directive will recompute the height of origin component
+      this.$emit('v-auto-float-height-change')
+    }
+  }
+```
 ## notices
 1. only support pc browsers
 
     只支持pc版本
-2. it will overridethe style.cssText when the component float, so use className to set css, not style
+2. it will overridethe style.cssText when the component float(before 0.0.5), so use className to set css, not style
 
     当组件悬浮时会覆盖cssText，所以使用class去设置样式，而不要用style
 
 ## plans
 1. support mobile browsers
-2. not override the style.cssText
+2. not override the style.cssText (completed @0.0.5)
 3. use the vm.$nextTick to make sure the element has binded
-4. support auto adjust size by emit event
+4. support auto adjust size by emit event (completed @0.0.5)
