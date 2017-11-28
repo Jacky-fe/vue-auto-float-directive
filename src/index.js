@@ -43,14 +43,15 @@ const offset = function (node) {
   let scrollLeft = win.pageXOffset || doc.documentElement.scrollLeft || doc.body.scrollLeft
   let clientTop = doc.documentElement.clientTop || doc.body.clientTop
   let clientLeft = doc.documentElement.clientLeft || doc.body.clientLeft
-
+  const nodeStyle = getComputedStyle(node)
+  const marginLeft = parseInt((nodeStyle.marginLeft || '0').replace('px', ''))
+  const marginTop = parseInt((nodeStyle.marginTop || '0').replace('px', ''))
   box = {
-    top: nRect.top + (scrollTop || 0) - (clientTop || 0),
-    left: nRect.left + (scrollLeft || 0) - (clientLeft || 0),
+    top: nRect.top + (scrollTop || 0) - (clientTop || 0) - marginTop,
+    left: nRect.left + (scrollLeft || 0) - (clientLeft || 0) - marginLeft,
     width: nRect.width,
     height: nRect.height
   }
-
   return box
 }
 const getScrollTop = function () {
@@ -82,13 +83,15 @@ if (!isServer) {
         // recomputed the rect, maybe some elements changed
         item.rect = offset(item.el)
         item.hasFixed = true
-        item.el.style.cssText = changeEleCssText(item.el, `position:fixed; top:0px; width:${item.rect.width}px;z-index: 100`)
+        item.el.style.cssText = changeEleCssText(item.el, `position:fixed; top:0px;left:${item.rect.left}px;width:${item.rect.width}px;z-index: 100`)
         // create a placeHolder to avoid the element jump up
         item.placeHolder = item.placeHolder || createPlaceHolder(item.rect.width, item.rect.height, item.el.className)
         item.el.parentElement.insertBefore(item.placeHolder, item.el.nextSibling)
+        document.body.appendChild(item.el)
       } else if (scrollTop < item.rect.top && item.hasFixed) {
         item.hasFixed = false
         item.el.style.cssText = item.originCssText
+        item.placeHolder.parentElement.insertBefore(item.el, item.placeHolder)
         item.el.parentElement.removeChild(item.placeHolder)
       }
     })
@@ -129,8 +132,8 @@ if (!isServer) {
     timerId = window.setTimeout(function () {
       floatItemArray.forEach(item => {
         if (item.hasFixed) {
-          const placeHolderRect = rect(item.placeHolder)
-          item.el.style.cssText = changeEleCssText(item.el, `position:fixed; top:0px; width:${placeHolderRect.width}px;z-index: 100`)
+          const placeHolderRect = offset(item.placeHolder)
+          item.el.style.cssText = changeEleCssText(item.el, `position:fixed; top:0px; left:${placeHolderRect.left}px;width:${placeHolderRect.width}px;z-index: 100`)
           const originRect = rect(item.el)
           item.placeHolder.style.cssText = `height:${originRect.height}px;`
         }
@@ -142,7 +145,6 @@ if (!isServer) {
 const autoFloat = {
   inserted (el, binding, vnode) {
     if (!isServer) {
-      console.log(offset(el))
       floatItemArray.push({el, rect: offset(el), originCssText: el.style.cssText})
       vnode.context.$on('v-auto-float-height-change', () => {
         const floatItem = floatItemArray.find(item => item.el === el)

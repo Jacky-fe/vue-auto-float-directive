@@ -14,6 +14,9 @@ auto float the components when scroll over it, just like the good detail page ta
 
 3. support ssr
 
+## change logs
+0.0.7 append the origin dom element to body when float it, compute the offset with 'margin-left' and 'margin-top'
+
 ## install
 npm install vue-auto-float-directive
 
