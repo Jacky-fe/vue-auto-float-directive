@@ -1,6 +1,6 @@
 {
   "name": "vue-auto-float-directive",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "auto float the component when scroll the page like the product detail page in jd.com",
   "main": "index.js",
   "scripts": {

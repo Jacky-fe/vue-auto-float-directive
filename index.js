@@ -71,12 +71,6 @@ var getScrollTop = function getScrollTop() {
   }
   return 0;
 };
-var createPlaceHolder = function createPlaceHolder(width, height, className) {
-  var el = document.createElement('div');
-  el.style.cssText = 'height:' + height + 'px;';
-  el.className = className;
-  return el;
-};
 var floatItemArray = [];
 if (!isServer) {
   // when scroll over the element, push
@@ -87,9 +81,9 @@ if (!isServer) {
         // recomputed the rect, maybe some elements changed
         item.rect = offset(item.el);
         item.hasFixed = true;
-        item.el.style.cssText = changeEleCssText(item.el, 'position:fixed; top:0px;left:' + item.rect.left + 'px;width:' + item.rect.width + 'px;z-index: 100');
         // create a placeHolder to avoid the element jump up
-        item.placeHolder = item.placeHolder || createPlaceHolder(item.rect.width, item.rect.height, item.el.className);
+        item.placeHolder = item.placeHolder || createPlaceHolder(item.rect.width, item.rect.height, item.el);
+        item.el.style.cssText = changeEleCssText(item.el, 'position:fixed; top:0px;left:' + item.rect.left + 'px;width:' + item.rect.width + 'px;z-index: 100');
         item.el.parentElement.insertBefore(item.placeHolder, item.el.nextSibling);
         document.body.appendChild(item.el);
       } else if (scrollTop < item.rect.top && item.hasFixed) {
@@ -127,6 +121,12 @@ if (!isServer) {
     }
     return toCssText(oldCssObj);
   };
+  var createPlaceHolder = function createPlaceHolder(width, height, origin) {
+    var el = document.createElement(origin.tagName);
+    el.style.cssText = changeEleCssText(origin, 'height:' + height + 'px;');
+    el.className = origin.className;
+    return el;
+  };
   var timerId = null;
   // when resize recompute the width of placeHolder and height of origin
   on(window, 'resize', function () {
@@ -139,7 +139,7 @@ if (!isServer) {
           var placeHolderRect = offset(item.placeHolder);
           item.el.style.cssText = changeEleCssText(item.el, 'position:fixed; top:0px; left:' + placeHolderRect.left + 'px;width:' + placeHolderRect.width + 'px;z-index: 100');
           var originRect = rect(item.el);
-          item.placeHolder.style.cssText = 'height:' + originRect.height + 'px;';
+          item.placeHolder.style.cssText = changeEleCssText(item.placeHolder, 'height:' + originRect.height + 'px;');
         }
       });
       timerId = window.clearTimeout(timerId);
